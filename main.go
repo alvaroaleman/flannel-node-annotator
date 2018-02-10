@@ -5,10 +5,10 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"github.com/alvaroaleman/k8s-node-pulicip-annotator/controller"
+	"github.com/kubermatic/machine-controller/pkg/signals"
+
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -32,6 +32,8 @@ func main() {
 		glog.Fatal(err)
 	}
 
-	// create the pod watcher
-	_ = cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "nodes", v1.NamespaceDefault, fields.Everything())
+	stopChannel := signals.SetupSignalHandler()
+	controller := controller.NewController(clientset, stopChannel)
+
+	controller.Run(1, stopChannel)
 }
