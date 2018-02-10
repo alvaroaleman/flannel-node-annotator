@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeinformers "k8s.io/client-go/informers"
@@ -14,7 +15,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
+const (
+	addressLabelName = "flannel.alpha.coreos.com/public-ip-overwrite"
+	addressType      = "ExternalIP"
+)
+
 type Controller struct {
+	kubeClient  kubernetes.Interface
 	workqueue   workqueue.RateLimitingInterface
 	nodesLister listerscorev1.NodeLister
 }
@@ -23,6 +30,7 @@ func NewController(clientset *kubernetes.Clientset, stopCh <-chan struct{}) *Con
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(clientset, time.Second*30)
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	controller := &Controller{
+		kubeClient:  clientset,
 		nodesLister: nodeInformer.Lister(),
 		workqueue:   workqueue.NewNamedRateLimitingQueue(workqueue.NewItemFastSlowRateLimiter(2*time.Second, 10*time.Second, 5), "nodes"),
 	}
@@ -75,10 +83,37 @@ func (c *Controller) syncNode(key string) error {
 		glog.Infof("Error getting node '%s': '%v'", key, err)
 		return nil
 	}
+
 	node := listerNode.DeepCopy()
 	glog.Infof("Syncing node '%s'", node.Name)
+	for _, address := range node.Status.Addresses {
+		if address.Type == addressType {
+			if err := c.ensureAddressLabel(node, address.Address); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
+}
+
+func (c *Controller) ensureAddressLabel(node *corev1.Node, address string) error {
+	var updated bool
+	var err error
+	if value, exists := node.Labels[addressLabelName]; exists {
+		updated = true
+		node.Labels[addressLabelName] = address
+	} else {
+		if value != address {
+			updated = true
+			node.Labels[addressLabelName] = address
+		}
+	}
+	if updated {
+		glog.Infof("Updating label of node '%s'", node.Name)
+		_, err = c.kubeClient.CoreV1().Nodes().Update(node)
+	}
+	return err
 }
 
 func (c *Controller) handleErr(err error, key interface{}) {
