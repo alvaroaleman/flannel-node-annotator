@@ -3,9 +3,8 @@ SHELL = /bin/bash
 REGISTRY ?= docker.io
 REGISTRY_NAMESPACE ?= alvaroaleman
 
-IMAGE_TAG = \
-		$(shell echo $$(git rev-parse HEAD && if [[ -n $$(git status --porcelain) ]]; then echo '-dirty'; fi)|tr -d ' ')
-IMAGE_NAME = $(REGISTRY)/$(REGISTRY_NAMESPACE)/machine-controller:$(IMAGE_TAG)
+IMAGE_TAG ?= latest
+IMAGE_NAME = $(REGISTRY)/$(REGISTRY_NAMESPACE)/flannel-node-annotator:$(IMAGE_TAG)
 
 vendor: Gopkg.lock Gopkg.toml
 	dep ensure -vendor-only
