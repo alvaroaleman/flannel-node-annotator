@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	addressLabelName = "flannel.alpha.coreos.com/public-ip-overwrite"
-	addressType      = "ExternalIP"
+	addressAnnotationName = "flannel.alpha.coreos.com/public-ip-overwrite"
+	addressType           = "ExternalIP"
 )
 
 type Controller struct {
@@ -88,7 +88,7 @@ func (c *Controller) syncNode(key string) error {
 	glog.V(6).Infof("Syncing node '%s'", node.Name)
 	for _, address := range node.Status.Addresses {
 		if address.Type == addressType {
-			if err := c.ensureAddressLabel(node, address.Address); err != nil {
+			if err := c.ensureAddressAnnotation(node, address.Address); err != nil {
 				return err
 			}
 		}
@@ -97,20 +97,20 @@ func (c *Controller) syncNode(key string) error {
 	return nil
 }
 
-func (c *Controller) ensureAddressLabel(node *corev1.Node, address string) error {
+func (c *Controller) ensureAddressAnnotation(node *corev1.Node, address string) error {
 	var updated bool
 	var err error
-	if value, exists := node.Labels[addressLabelName]; !exists {
+	if value, exists := node.Annotations[addressAnnotationName]; !exists {
 		updated = true
-		node.Labels[addressLabelName] = address
+		node.Annotations[addressAnnotationName] = address
 	} else {
 		if value != address {
 			updated = true
-			node.Labels[addressLabelName] = address
+			node.Annotations[addressAnnotationName] = address
 		}
 	}
 	if updated {
-		glog.Infof("Updating label of node '%s'", node.Name)
+		glog.Infof("Updating annotation of node '%s'", node.Name)
 		_, err = c.kubeClient.CoreV1().Nodes().Update(node)
 	}
 	return err
