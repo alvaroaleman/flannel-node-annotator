@@ -1,7 +1,7 @@
 FROM alpine:3.7
 
-COPY node-annotator /usr/local/bin
+COPY flannel-node-annotator /usr/local/bin
 
 USER nobody
 
-CMD ["/usr/local/bin/node-annotator", "-logtostderr"]
+CMD ["/usr/local/bin/flannel-node-annotator", "-logtostderr"]

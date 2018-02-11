@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/alvaroaleman/k8s-node-pulicip-annotator/controller"
+	"github.com/alvaroaleman/flannel-node-annotator/controller"
 	"github.com/kubermatic/machine-controller/pkg/signals"
 
 	"k8s.io/client-go/kubernetes"
