@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flannel-node-annotator
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: flannel-node-annotator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "nodes"
+  verbs:
+  - list
+  - get
+  - watch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: flannel-node-annotator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flannel-node-annotator
+subjects:
+  - kind: ServiceAccount
+    name: flannel-node-annotator
+    namespace: kube-system
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: flannel-node-annotator
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flannel-node-annotator
+  template:
+    metadata:
+      labels:
+        app: flannel-node-annotator
+    spec:
+      serviceAccountName: flannel-node-annotator
+      containers:
+        - image: alvaroaleman/flannel-node-annotator
+          imagePullPolicy: IfNotPresent
+          name: flannel-node-annotator
