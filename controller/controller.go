@@ -70,7 +70,7 @@ func (c *Controller) processNextItem() bool {
 	defer c.workqueue.Done(key)
 
 	// Invoke the method containing the business logic
-	glog.Infof("Processing node '%s'", key)
+	glog.V(6).Infof("Processing node '%s'", key)
 	err := c.syncNode(key.(string))
 	// Handle the error if something went wrong during the execution of the business logic
 	c.handleErr(err, key)
@@ -85,7 +85,7 @@ func (c *Controller) syncNode(key string) error {
 	}
 
 	node := listerNode.DeepCopy()
-	glog.Infof("Syncing node '%s'", node.Name)
+	glog.V(6).Infof("Syncing node '%s'", node.Name)
 	for _, address := range node.Status.Addresses {
 		if address.Type == addressType {
 			if err := c.ensureAddressLabel(node, address.Address); err != nil {
@@ -100,7 +100,7 @@ func (c *Controller) syncNode(key string) error {
 func (c *Controller) ensureAddressLabel(node *corev1.Node, address string) error {
 	var updated bool
 	var err error
-	if value, exists := node.Labels[addressLabelName]; exists {
+	if value, exists := node.Labels[addressLabelName]; !exists {
 		updated = true
 		node.Labels[addressLabelName] = address
 	} else {
@@ -146,7 +146,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) {
 
 	// Let the workers stop when we are done
 	defer c.workqueue.ShutDown()
-	glog.Info("Starting Node controller")
+	glog.Info("Started Node controller")
 
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
