@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	addressAnnotationName = "flannel.alpha.coreos.com/public-ip-overwrite"
-	addressType           = "ExternalIP"
+	addressOverwriteAnnotationName = "flannel.alpha.coreos.com/public-ip-overwrite"
+	addressAnnotationName          = "flannel.alpha.coreos.com/public-ip"
+	addressType                    = "ExternalIP"
 )
 
 type Controller struct {
@@ -103,10 +104,12 @@ func (c *Controller) ensureAddressAnnotation(node *corev1.Node, address string) 
 	if value, exists := node.Annotations[addressAnnotationName]; !exists {
 		updated = true
 		node.Annotations[addressAnnotationName] = address
+		node.Annotations[addressOverwriteAnnotationName] = address
 	} else {
 		if value != address {
 			updated = true
 			node.Annotations[addressAnnotationName] = address
+			node.Annotations[addressOverwriteAnnotationName] = address
 		}
 	}
 	if updated {
