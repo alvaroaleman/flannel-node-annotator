@@ -17,22 +17,23 @@ import (
 
 const (
 	addressAnnotationName = "flannel.alpha.coreos.com/public-ip-overwrite"
-	addressType           = "ExternalIP"
 )
 
 type Controller struct {
 	kubeClient  kubernetes.Interface
 	workqueue   workqueue.RateLimitingInterface
 	nodesLister listerscorev1.NodeLister
+	addressType corev1.NodeAddressType
 }
 
-func NewController(clientset *kubernetes.Clientset, stopCh <-chan struct{}) *Controller {
+func NewController(clientset *kubernetes.Clientset, addressType corev1.NodeAddressType, stopCh <-chan struct{}) *Controller {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(clientset, time.Second*30)
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	controller := &Controller{
 		kubeClient:  clientset,
 		nodesLister: nodeInformer.Lister(),
 		workqueue:   workqueue.NewNamedRateLimitingQueue(workqueue.NewItemFastSlowRateLimiter(2*time.Second, 10*time.Second, 5), "nodes"),
+		addressType: addressType,
 	}
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -87,7 +88,7 @@ func (c *Controller) syncNode(key string) error {
 	node := listerNode.DeepCopy()
 	glog.V(6).Infof("Syncing node '%s'", node.Name)
 	for _, address := range node.Status.Addresses {
-		if address.Type == addressType {
+		if address.Type == c.addressType {
 			if err := c.ensureAddressAnnotation(node, address.Address); err != nil {
 				return err
 			}
