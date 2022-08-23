@@ -8,6 +8,7 @@ import (
 	"github.com/alvaroaleman/flannel-node-annotator/controller"
 	"github.com/kubermatic/machine-controller/pkg/signals"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -15,9 +16,11 @@ import (
 func main() {
 	var kubeconfig string
 	var master string
+	var addressType string
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	flag.StringVar(&master, "master", "", "master url")
+	flag.StringVar(&addressType, "type", "ExternalIP", "which address (InternalIP or ExternalIP) should be used by flannel")
 	flag.Parse()
 
 	// creates the connection
@@ -33,7 +36,7 @@ func main() {
 	}
 
 	stopChannel := signals.SetupSignalHandler()
-	controller := controller.NewController(clientset, stopChannel)
+	controller := controller.NewController(clientset, corev1.NodeAddressType(addressType), stopChannel)
 
 	controller.Run(1, stopChannel)
 }
